@@ -1,9 +1,7 @@
-from imutils import paths
+
 from tqdm import tqdm
 import pandas as pd
-import numpy as np
 import shutil
-import cv2
 import os
 
 #Utility Functions
@@ -26,12 +24,10 @@ def move_videos(df, output_dir):
 
         if os.path.exists(videoFile):
             shutil.copy2(videoFile, output_dir)
-        else:
-            print(f"File not found: {videoFile}")
+        
 
 
-    print()
-    print(f"Total Videos: {len(os.listdir(output_dir))}")
+    
 
 
 #Open text files that contain training videos
@@ -84,8 +80,8 @@ test_new = test_new.reset_index(drop=True)
 
 #Move Top-n Action Videos to CSV!
 
-#move_videos(train_new,"train")
-#move_videos(test_new,"test")
+move_videos(train_new,"train")
+move_videos(test_new,"test")
 
-#train_new.to_csv("train.csv", index=False)
-#test_new.to_csv("test.csv", index=False)
+train_new.to_csv("train.csv", index=False)
+test_new.to_csv("test.csv", index=False)
