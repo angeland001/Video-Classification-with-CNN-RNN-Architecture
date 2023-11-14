@@ -18,12 +18,13 @@ def rectify_video_name(video_name):
 def move_videos(df, output_dir):
     if not os.path.exists(output_dir):
         os.mkdir(output_dir)
-
     for i in tqdm(range(df.shape[0])):
-        videoFile = df["video_name"][i].split("/")[-1]
-
-        if os.path.exists(videoFile):
-            shutil.copy2(videoFile, output_dir)
+        videoFile = df['video_name'][i].split("/")[-1]
+        videoPath = os.path.join("data", videoFile)
+        
+        shutil.copy2(videoPath, output_dir)
+    print()
+    print(f"Total videos: {len(os.listdir(output_dir))}")
         
 
 
@@ -31,7 +32,7 @@ def move_videos(df, output_dir):
 
 
 #Open text files that contain training videos
-trainingFile = open("/Users/andresangel/Documents/GitHub/Video-Classification-with-CNN-RNN-Architecture/UCFTrainList/trainlist01.txt", "r")
+trainingFile = open("/Users/andresangel/Desktop/ucfTrainTestList/trainlist01.txt", "r")
 temp = trainingFile.read()
 videos = temp.split('\n')
 
@@ -42,7 +43,7 @@ train = train[:-1]
 
 
 #Open the .txt file containing names of test videos
-with open("/Users/andresangel/Documents/GitHub/Video-Classification-with-CNN-RNN-Architecture/UCFTestList/testlist01.txt", "r") as file:
+with open("/Users/andresangel/Desktop/ucfTrainTestList/testlist01.txt", "r") as file:
     temp = file.read()
 videos = temp.split("\n")
 
@@ -50,6 +51,7 @@ videos = temp.split("\n")
 test = pd.DataFrame()
 test["video_name"] = videos
 test = test[:-1]
+
 
 
 #Dataframe Preparation
@@ -80,8 +82,10 @@ test_new = test_new.reset_index(drop=True)
 
 #Move Top-n Action Videos to CSV!
 
-move_videos(train_new,"train")
-move_videos(test_new,"test")
+
+#move_videos(train_new,"train")
+#move_videos(test_new,"test")
+
 
 train_new.to_csv("train.csv", index=False)
 test_new.to_csv("test.csv", index=False)
