@@ -123,3 +123,56 @@ label_processor = keras.layers.StringLookup(
 )
 
 print(label_processor.get_vocabulary())
+
+#Data Processing Utility
+
+def prepare_all_videos(df, root_dir):
+    num_samples = len(df)
+    video_paths = df['video_name'].values.tolist()
+    labels = df['tag'].values
+    labels = label_processor(labels[..., None]).numpy()
+
+
+    # `frame_masks` and `frame_features` are what we will feed to our sequence model.
+    # `frame_masks` will contain a bunch of booleans denoting if a timestep is
+    # masked with padding or not.
+
+    frame_masks = np.zeros(shape=(num_samples, max_seq_length), dtype='bool')
+    frame_features = np.zeros(
+        shape=(num_samples, max_seq_length, num_features),dtype="float32"
+    )
+
+    #For each video
+
+    for idx, path in enumerate(video_paths):
+        frames = load_video(os.path.join(root_dir,path))
+        frames = frames[None,...]
+
+        # Initialize placeholders to store the masks and features of the current video.
+        temp_frame_mask = np.zeros(shape=(1,max_seq_length,), dtype='bool')
+        temp_frame_features = np.zeros(
+            shape=(1,max_seq_length,num_features), dtype='float32'
+        )
+
+        #Extract features from the frames of the current video
+        for i, batch in enumerate(frames):
+            video_length = batch.shape[0]
+            length = min(max_seq_length,video_length)
+            for j in range(length):
+                temp_frame_features[i,j,:] = feature_extractor.predict(
+                    batch[None,j,:]
+                )
+
+            temp_frame_mask[i,:length] = 1 # 1 = not masked, 0 = masked
+
+        frame_features[idx,] = temp_frame_features.squeeze()
+        frame_masks[idx,] = temp_frame_mask.squeeze()
+
+    return (frame_features, frame_masks), labels
+
+
+train_data, train_labels = prepare_all_videos(train_df, "train")
+test_data, test_labels = prepare_all_videos(test_df, "test")
+
+print(f"Frame features in train set: {train_data[0].shape}")
+print(f"Frame masks in train set: {train_data[1].shape}")
