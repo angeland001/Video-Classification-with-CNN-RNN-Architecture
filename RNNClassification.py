@@ -145,9 +145,10 @@ def prepare_all_videos(df, root_dir):
     #For each video
 
     for idx, path in enumerate(video_paths):
-        frames = load_video(os.path.join(root_dir,path))
+        frames = load_video(os.path.join(root_dir, path))
+        
         frames = frames[None,...]
-
+        
         # Initialize placeholders to store the masks and features of the current video.
         temp_frame_mask = np.zeros(shape=(1,max_seq_length,), dtype='bool')
         temp_frame_features = np.zeros(
@@ -171,8 +172,13 @@ def prepare_all_videos(df, root_dir):
     return (frame_features, frame_masks), labels
 
 print("file exists?", os.path.exists('/Users/andresangel/Desktop/train/v_BoxingPunchingBag_g08_c01.avi'))
-train_data, train_labels = prepare_all_videos(train_df, "train")
-test_data, test_labels = prepare_all_videos(test_df, "test")
+train_data, train_labels = prepare_all_videos(train_df, "/Users/andresangel/Desktop/train")
+print()
+print("Training CV videos done")
+test_data, test_labels = prepare_all_videos(test_df, "/Users/andresangel/Desktop/test")
+
+print()
+print("Testing CV videos done")
 
 print(f"Frame features in train set: {train_data[0].shape}")
 print(f"Frame masks in train set: {train_data[1].shape}")
