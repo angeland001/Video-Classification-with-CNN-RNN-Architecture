@@ -170,7 +170,7 @@ def prepare_all_videos(df, root_dir):
 
     return (frame_features, frame_masks), labels
 
-
+print("file exists?", os.path.exists('/Users/andresangel/Desktop/train/v_BoxingPunchingBag_g08_c01.avi'))
 train_data, train_labels = prepare_all_videos(train_df, "train")
 test_data, test_labels = prepare_all_videos(test_df, "test")
 
