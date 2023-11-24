@@ -177,8 +177,100 @@ print()
 print("Training CV videos done")
 test_data, test_labels = prepare_all_videos(test_df, "/Users/andresangel/Desktop/test")
 
+#Will take about 20 minutes to run
 print()
 print("Testing CV videos done")
 
 print(f"Frame features in train set: {train_data[0].shape}")
 print(f"Frame masks in train set: {train_data[1].shape}")
+
+#Utility function for Sequence Model
+def get_sequence_model():
+    class_vocab = label_processor.get_vocabulary()
+
+    frame_features_input = keras.Input((max_seq_length,num_features))
+    mask_input = keras.Input((max_seq_length,),dtype="bool")
+
+    # https://keras.io/api/layers/recurrent_layers/gru/
+    # Follow link above for info on hidden layer
+
+    x = keras.layers.GRU(16, return_sequences=True) (
+        frame_features_input, mask=mask_input
+    )
+    x = keras.layers.GRU(8)(x)
+    x = keras.layers.Dropout(0.4)(x)
+    x = keras.layers.Dense(8, activation='relu')(x)
+    output = keras.layers.Dense(len(class_vocab), activation='softmax')(x)
+
+    rnn_model = keras.Model([frame_features_input,mask_input], output)
+    
+    rnn_model.compile(
+        loss = "sparse_categorical_crossentropy", optimizer="adam", metrics=["accuracy"]
+    )
+
+    return rnn_model
+
+
+def run_experiment():
+    filepath = "/tmp/video_classifier"
+    checkpoint = keras.callbacks.ModelCheckpoint(
+        filepath,save_weights_only=True, save_best_only=True, verbose = 1
+    )
+
+    seq_model = get_sequence_model()
+    history = seq_model.fit(
+        [train_data[0], train_data[1]],
+        train_labels,
+        validation_split=0.3,
+        epochs=epochs,
+        callbacks=[checkpoint],
+    )
+
+    seq_model.load_weights(filepath)
+    _,accuracy = seq_model.evaluate([test_data[0], test_data[1]], test_labels)
+    print(f"Test Accuracy: {round(accuracy * 100, 2)}%")
+
+    return history, seq_model
+
+
+_, sequence_model = run_experiment()
+sequence_model.save("my_model.keras")
+
+
+def prepare_single_video(frame):
+    frames = frames[None,...]
+    frame_mask = np.zeros(shape=(1,max_seq_length,), dtype="bool")
+    frame_features = np.zeros(shape=(1,max_seq_length,num_features), dtype="float32")
+
+    for i,batch in enumerate(frames):
+        video_length = batch.shape[0]
+        length = min(max_seq_length, video_length)
+        for j in range(length):
+            frame_features[i,j, :] = feature_extractor.predict(batch[None,j,:])
+
+        frame_mask[i,:length] = 1 # 1 = not masked, 0 = masked
+
+    return frame_features, frame_mask
+
+
+def sequence_prediction(path):
+    class_vocab = label_processor.get_vocabulary()
+
+    frames = load_video(os.path.join("/Users/andresangel/Desktop/test", path))
+    frame_features, frame_mask = prepare_single_video(frames)
+    probabilities = sequence_model.predict([frame_features,frame_mask])[0]
+
+    for i in np.argsort(probabilities)[::-1]:
+        print(f" {class_vocab[i]}: {probabilities[i] * 100:5.2f}%")
+
+    return frames
+
+def to_gif(images):
+    converted_images = images.astype(np.uint8)
+    imageio.mimsave("animation.gif", converted_images, duration=100)
+    return embed.embed_file("animation.gif")
+
+test_video = np.random.choice(test_df["video_name"].values.tolist())
+print(f"Test Video Path: {test_video}")
+test_frames = sequence_prediction(test_video)
+to_gif(test_frames[:max_seq_length]) 
