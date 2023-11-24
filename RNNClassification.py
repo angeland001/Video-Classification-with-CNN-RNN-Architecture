@@ -172,17 +172,19 @@ def prepare_all_videos(df, root_dir):
     return (frame_features, frame_masks), labels
 
 print("file exists?", os.path.exists('/Users/andresangel/Desktop/train/v_BoxingPunchingBag_g08_c01.avi'))
-train_data, train_labels = prepare_all_videos(train_df, "/Users/andresangel/Desktop/train")
+#train_data, train_labels = prepare_all_videos(train_df, "/Users/andresangel/Desktop/train")
 print()
 print("Training CV videos done")
-test_data, test_labels = prepare_all_videos(test_df, "/Users/andresangel/Desktop/test")
+#test_data, test_labels = prepare_all_videos(test_df, "/Users/andresangel/Desktop/test")
 
 #Will take about 20 minutes to run
 print()
 print("Testing CV videos done")
 
-print(f"Frame features in train set: {train_data[0].shape}")
-print(f"Frame masks in train set: {train_data[1].shape}")
+print()
+
+#print(f"Frame features in train set: {train_data[0].shape}")
+#print(f"Frame masks in train set: {train_data[1].shape}")
 
 #Utility function for Sequence Model
 def get_sequence_model():
@@ -210,6 +212,7 @@ def get_sequence_model():
 
     return rnn_model
 
+'''
 
 def run_experiment():
     filepath = "/tmp/video_classifier"
@@ -231,13 +234,14 @@ def run_experiment():
     print(f"Test Accuracy: {round(accuracy * 100, 2)}%")
 
     return history, seq_model
+'''
+
+# Only run if wanting a new model!
+#_, sequence_model = run_experiment()
+#sequence_model.save("my_model.keras")
 
 
-_, sequence_model = run_experiment()
-sequence_model.save("my_model.keras")
-
-
-def prepare_single_video(frame):
+def prepare_single_video(frames):
     frames = frames[None,...]
     frame_mask = np.zeros(shape=(1,max_seq_length,), dtype="bool")
     frame_features = np.zeros(shape=(1,max_seq_length,num_features), dtype="float32")
@@ -254,11 +258,13 @@ def prepare_single_video(frame):
 
 
 def sequence_prediction(path):
+    loaded_model = keras.models.load_model("my_model.keras")
     class_vocab = label_processor.get_vocabulary()
 
     frames = load_video(os.path.join("/Users/andresangel/Desktop/test", path))
     frame_features, frame_mask = prepare_single_video(frames)
-    probabilities = sequence_model.predict([frame_features,frame_mask])[0]
+
+    probabilities = loaded_model.predict([frame_features,frame_mask])[0]
 
     for i in np.argsort(probabilities)[::-1]:
         print(f" {class_vocab[i]}: {probabilities[i] * 100:5.2f}%")
